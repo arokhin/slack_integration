@@ -5,7 +5,7 @@ import os
 
 slack_url = os.getenv('SLACK_WEBHOOK_URL')
 upsource_url = os.getenv('UPSOURCE_BASE_URL')
-botname = "Upsource BOT"
+slack_channel = os.getenv('SLACK_CHANNEL')
 
 
 def find_json_key(key, data):
@@ -22,31 +22,59 @@ def find_json_key(key, data):
     json.loads(in_json, object_hook=_decode_dict)
     return results[0]
 
+
+def create_payload(text):
+    final_data = {'channel': slack_channel, 'text': text, 'username': "Upsource BOT"}
+    return final_data
+
+
+class SlackClient:
+    def __init__(self, url):
+        self.url = url
+        self.headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+
+    def send_to_slack(self, data):
+        requests.post(self.url, data=json.dumps(data), headers=self.headers)
+        return "OK"
+
+client = SlackClient(slack_url)
+
 app = Flask(__name__)
 
 
 @app.route('/', methods=['POST'])
+
+
+
 def index():
-    file = json.loads(request.data)
-    print(file)
-    if file['dataType'] == 'ReviewCreatedFeedEventBean':
-        reviewid = find_json_key('reviewId', file)
-        print(reviewid)
+    json_payload = json.loads(request.data)
+    print(json_payload)
+    supported_events = ["ReviewCreatedFeedEventBean", "MergedToDefaultBranchEventBean"]
 
-        text = "Review <%s|%s> has been created" % (upsource_url, reviewid)
-        data = {'channel': '#general', 'text': text, 'username': botname}
-        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+    while json_payload['dataType'] in supported_events:
+        pass
 
-        requests.post(slack_url, data=json.dumps(data), headers=headers)
+        project_id = find_json_key('projectId', json_payload)
 
-        print(data)
-    else:
-        print('Something else has happened')
-    return "OK"
+        if json_payload['dataType'] == 'ReviewCreatedFeedEventBean':
+
+            review_id = find_json_key('reviewId', json_payload)
+            review_url = upsource_url + '/' + project_id + '/' + "review" + '/' + review_id
+
+            text = "Review <%s|%s> has been created" % (review_url, review_id)
+
+            client.send_to_slack(create_payload(text))
+
+        if json_payload['dataType'] == 'MergedToDefaultBranchEventBean':
+
+            branch_id = find_json_key('branches', json_payload)[0]
+            branch_url = upsource_url + '/' + project_id + '/' + "branch" + '/' + branch_id
+
+            text = "Branch <%s|%s> has been merged to master" % (branch_url, branch_id)
+
+            client.send_to_slack(create_payload(text))
+
+        return "OK"
 
 if __name__ == '__main__':
     app.run()
-
-
-
-
