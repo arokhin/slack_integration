@@ -1,0 +1,13 @@
+# Slack integration for JetBrains Upsource
+
+Listens for [webhooks](https://www.jetbrains.com/help/upsource/upsource-webhooks.html) from Upsource and send it to the specified channel in Slack.
+
+## Supported webhooks:
+
+* A review is created
+* A merge is made to the default branch
+* A review closed or reopened
+* A new branch is detected
+
+
+

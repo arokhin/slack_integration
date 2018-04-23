@@ -1,8 +1,8 @@
-from flask import Flask, request
 import json
 import os
-from SlackClient import SlackClient
-from JsonParser import JsonObject
+from flask import Flask, request
+from src.JsonParser import JsonObject
+from src.SlackClient import SlackClient
 
 
 SlackUrl = os.getenv('SLACK_WEBHOOK_URL')
@@ -30,6 +30,17 @@ def find_review_id(json_payload):
 def find_branch_url(json_payload, branch_id):
     branch_url = UpsourceUrl + '/' + find_project_id(json_payload) + '/' + "branch" + '/' + branch_id
     return branch_url
+
+
+def find_user_name(json_payload):
+    userName = JsonObject(json_payload).find_json_key('userName')
+    return userName
+
+
+def find_user_id_url(json_payload):
+    user_id_url = UpsourceUrl + "user" + '/' + JsonObject(json_payload).find_json_key("userId")
+    return user_id_url
+
 
 app = Flask(__name__)
 
@@ -60,7 +71,9 @@ def index():
 
             review_id = find_review_id(json_payload)
             review_url = find_review_url(project_id, review_id)
-            text = "Review <%s|%s> has been created" % (review_url, review_id)
+            review_creator = find_user_name(json_payload)
+            creator_url = find_user_id_url(json_payload)
+            text = "Review <%s|%s> has been created by <%s|%s>." % (review_url, review_id, creator_url, review_creator)
 
             client.send_to_slack(client.prepare_data(text))
 
