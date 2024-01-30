@@ -45,7 +45,10 @@ def find_user_id_url(json_payload):
 app = Flask(__name__)
 
 
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['GET', 'POST'])
+def index_page():
+    return "<p>I'm listening for incoming webhooks from Slack</p>"
+
 
 
 def index():
